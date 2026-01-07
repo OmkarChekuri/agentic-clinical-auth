@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agentic Clinical Auth</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Added Markdown Parser -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; background: #020617; color: #f8fafc; }
+        .glass { background: rgba(15, 23, 42, 0.8); backdrop-filter: blur(12px); border: 1px solid rgba(51, 65, 85, 0.5); }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; border-radius: 10px; }
+        
+        /* Markdown Styling for Clinical Reports */
+        .markdown-content h1, .markdown-content h2, .markdown-content h3 { font-weight: 700; margin-top: 1.5rem; margin-bottom: 0.75rem; color: #f8fafc; }
+        .markdown-content h1 { font-size: 1.5rem; border-bottom: 1px solid #1e293b; padding-bottom: 0.5rem; }
+        .markdown-content h2 { font-size: 1.25rem; color: #10b981; }
+        .markdown-content h3 { font-size: 1.1rem; }
+        .markdown-content p { margin-bottom: 1rem; line-height: 1.6; }
+        .markdown-content table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.875rem; }
+        .markdown-content th, .markdown-content td { border: 1px solid #334155; padding: 0.75rem; text-align: left; }
+        .markdown-content th { background-color: #1e293b; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
+        .markdown-content ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1rem; }
+        .markdown-content strong { color: #fff; font-weight: 600; }
+        .markdown-content hr { border: 0; border-top: 1px solid #1e293b; margin: 1.5rem 0; }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        function App() {
+            const [cases, setCases] = useState([]);
+            const [form, setForm] = useState({ patient_id: 'P123', procedure: 'Spinal Fusion' });
+            const [loading, setLoading] = useState(false);
+
+            const poll = async () => {
+                try {
+                    const res = await fetch('http://localhost:8000/api/cases');
+                    if (res.ok) {
+                        const data = await res.json();
+                        setCases(data);
+                    }
+                } catch (err) {
+                    console.error("Polling error:", err);
+                }
+            };
+
+            useEffect(() => {
+                poll();
+                const inv = setInterval(poll, 3000);
+                return () => clearInterval(inv);
+            }, []);
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                setLoading(true);
+                try {
+                    const response = await fetch('http://localhost:8000/api/authorize', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(form)
+                    });
+                    if (response.ok) {
+                        setForm({ ...form, patient_id: '' }); 
+                        poll();
+                    }
+                } catch (err) {
+                    console.error("Submission error:", err);
+                } finally {
+                    setLoading(false);
+                }
+            };
+
+            const renderMarkdown = (text) => {
+                // Parse markdown into HTML safely
+                return { __html: marked.parse(text) };
+            };
+
+            return (
+                <div className="min-h-screen max-w-7xl mx-auto p-6 md:p-12">
+                    <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center mb-12 gap-6">
+                        <div>
+                            <h1 className="text-5xl font-black tracking-tight text-white mb-2">
+                                Agentic<span className="text-emerald-500">Auth</span>
+                            </h1>
+                            <p className="text-slate-400 font-medium">Enterprise Healthcare Prior-Authorization Reasoning Engine</p>
+                        </div>
+                        <div className="flex items-center gap-4 px-6 py-3 rounded-2xl glass border-emerald-500/30 shadow-lg shadow-emerald-500/5">
+                            <span className="relative flex h-3 w-3">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                            </span>
+                            <span className="text-emerald-400 font-mono text-sm font-bold tracking-widest uppercase">
+                                System Node: Operational
+                            </span>
+                        </div>
+                    </header>
+
+                    <div className="grid grid-cols-1 xl:grid-cols-4 gap-12">
+                        {/* Control Section */}
+                        <section className="xl:col-span-1">
+                            <form onSubmit={handleSubmit} className="glass p-8 rounded-3xl sticky top-12 shadow-2xl">
+                                <h2 className="text-xl font-bold mb-8 text-white flex items-center gap-3">
+                                    <div className="p-2 bg-emerald-500/10 rounded-lg">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-500"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10"/></svg>
+                                    </div>
+                                    Review Intake
+                                </h2>
+                                <div className="space-y-6">
+                                    <div>
+                                        <label className="block text-[10px] font-black uppercase text-slate-500 mb-2 tracking-[0.2em]">Patient Identifier</label>
+                                        <input 
+                                            required
+                                            placeholder="e.g. P123, P789"
+                                            value={form.patient_id} 
+                                            onChange={e => setForm({...form, patient_id: e.target.value})} 
+                                            className="w-full bg-slate-950/50 border border-slate-700 rounded-xl p-4 text-white outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all placeholder:text-slate-800 font-medium"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black uppercase text-slate-500 mb-2 tracking-[0.2em]">Clinical Procedure</label>
+                                        <select 
+                                            value={form.procedure} 
+                                            onChange={e => setForm({...form, procedure: e.target.value})} 
+                                            className="w-full bg-slate-950/50 border border-slate-700 rounded-xl p-4 text-white outline-none focus:ring-2 focus:ring-emerald-500/50 transition-all font-medium cursor-pointer"
+                                        >
+                                            <option value="Spinal Fusion">Spinal Fusion</option>
+                                            <option value="Knee Arthroplasty">Knee Arthroplasty</option>
+                                            <option value="Coronary Stent">Coronary Stent</option>
+                                        </select>
+                                    </div>
+                                    <button 
+                                        disabled={loading} 
+                                        className="w-full bg-emerald-600 hover:bg-emerald-500 py-4 rounded-xl font-black text-white transition-all shadow-xl shadow-emerald-900/20 disabled:opacity-50 disabled:cursor-not-allowed uppercase text-sm tracking-widest"
+                                    >
+                                        {loading ? 'Initializing Loop...' : 'Process Auth'}
+                                    </button>
+                                </div>
+                            </form>
+                        </section>
+
+                        {/* Queue Section */}
+                        <section className="xl:col-span-3 space-y-8">
+                            <div className="flex items-center justify-between">
+                                <h2 className="text-2xl font-bold text-white flex items-center gap-3">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-slate-500"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                                    Decision Pipeline
+                                </h2>
+                                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest bg-slate-900 px-3 py-1 rounded-full border border-slate-800">
+                                    {cases.length} Active Reviews
+                                </span>
+                            </div>
+                            
+                            <div className="space-y-8 max-h-[800px] overflow-y-auto pr-4 custom-scrollbar">
+                                {cases.length === 0 ? (
+                                    <div className="glass p-20 rounded-[2.5rem] text-center border-dashed border-slate-800">
+                                        <p className="text-slate-600 font-medium italic">Pipeline empty. Awaiting clinical telemetry...</p>
+                                    </div>
+                                ) : (
+                                    cases.map(c => (
+                                        <div key={c.id} className="glass p-8 md:p-10 rounded-[2.5rem] border-l-4 border-l-emerald-500 shadow-2xl hover:bg-slate-800/40 transition-all duration-300">
+                                            <div className="flex flex-col md:flex-row justify-between items-start mb-8 gap-6">
+                                                <div>
+                                                    <div className="flex items-center gap-3 mb-3">
+                                                        <span className="text-emerald-500 font-mono text-xs font-black tracking-widest bg-emerald-500/10 px-2 py-0.5 rounded">{c.id}</span>
+                                                        <span className="text-slate-600 font-bold">•</span>
+                                                        <span className="text-slate-500 text-xs font-bold">{new Date(c.time || Date.now()).toLocaleTimeString()}</span>
+                                                    </div>
+                                                    <h3 className="text-3xl font-black text-white leading-none mb-2">{c.procedure}</h3>
+                                                    <p className="text-slate-400 font-bold text-sm tracking-wide">Patient: <span className="text-slate-200">{c.patient_id}</span></p>
+                                                </div>
+                                                <span className={`px-5 py-2 rounded-full text-[10px] font-black tracking-[0.2em] uppercase border ${
+                                                    c.status === 'Completed' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 
+                                                    c.status === 'Failed' ? 'bg-rose-500/10 text-rose-400 border-rose-500/20' :
+                                                    'bg-blue-500/10 text-blue-400 border-blue-500/20 animate-pulse'
+                                                }`}>
+                                                    {c.status}
+                                                </span>
+                                            </div>
+                                            
+                                            {c.result && (
+                                                <div className="mt-8 pt-8 border-t border-slate-800/50">
+                                                    <div className="flex items-center gap-3 mb-6 text-slate-500 uppercase text-[10px] font-black tracking-[0.3em]">
+                                                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                                                        Clinical Reasoning Chain
+                                                    </div>
+                                                    <div 
+                                                        className="markdown-content text-slate-300 bg-slate-950/40 p-8 rounded-3xl border border-slate-800/30 shadow-inner"
+                                                        dangerouslySetInnerHTML={renderMarkdown(c.result)}
+                                                    />
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))
+                                )}
+                            </div>
+                        </section>
+                    </div>
+                </div>
+            );
+        }
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
